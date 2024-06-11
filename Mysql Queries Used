@@ -1,0 +1,125 @@
+CREATE DATABASE if not exists ig_clone;
+USE ig_clone;
+/*Users*/
+CREATE TABLE users(
+	id INT AUTO_INCREMENT UNIQUE PRIMARY KEY,
+	username VARCHAR(255) NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW()
+);
+/*Photos*/
+CREATE TABLE photos(
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	image_url VARCHAR(355) NOT NULL,
+	user_id INT NOT NULL,
+	created_dat TIMESTAMP DEFAULT NOW(),
+	FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+/*Comments*/
+CREATE TABLE comments(
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	comment_text VARCHAR(255) NOT NULL,
+	user_id INT NOT NULL,
+	photo_id INT NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW(),
+	FOREIGN KEY(user_id) REFERENCES users(id),
+	FOREIGN KEY(photo_id) REFERENCES photos(id)
+);
+
+/*Likes*/
+CREATE TABLE likes(
+	user_id INT NOT NULL,
+	photo_id INT NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW(),
+	FOREIGN KEY(user_id) REFERENCES users(id),
+	FOREIGN KEY(photo_id) REFERENCES photos(id),
+	PRIMARY KEY(user_id,photo_id)
+);
+
+/*follows*/
+CREATE TABLE follows(
+	follower_id INT NOT NULL,
+	followee_id INT NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW(),
+	FOREIGN KEY (follower_id) REFERENCES users(id),
+	FOREIGN KEY (followee_id) REFERENCES users(id),
+	PRIMARY KEY(follower_id,followee_id)
+);
+
+/*Tags*/
+CREATE TABLE tags(
+	id INTEGER AUTO_INCREMENT PRIMARY KEY,
+	tag_name VARCHAR(255) UNIQUE NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW()
+);
+
+/*junction table: Photos - Tags*/
+CREATE TABLE photo_tags(
+	photo_id INT NOT NULL,
+	tag_id INT NOT NULL,
+	FOREIGN KEY(photo_id) REFERENCES photos(id),
+	FOREIGN KEY(tag_id) REFERENCES tags(id),
+	PRIMARY KEY(photo_id,tag_id)
+);
+/*Task 1*/
+SELECT * FROM ig_clone.users
+ORDER by created_at
+limit 5;
+
+/*Task 2 */
+select users.id,username from users    
+left join photos     
+on users.id = photos.user_id where photos.id is NULL    
+order by username asc;
+
+/*Task 3*/
+select users.id as user_id, users.username, photos.id as photo_id, photos.image_url, count(*) as total
+from photos
+inner join likes
+on likes.photo_id = photos.id
+inner join users
+on photos.user_id = users.id
+group by photos.id
+order by total DESC
+limit 1; 
+
+/*Task 4*/
+select tags.tag_name, count(*) as total_number_of_times_tag_used_individually 
+from tags
+join photo_tags
+on tags.id = photo_tags.tag_id
+group by tags.tag_name
+order by total_number_of_times_tag_used_individually DESC
+limit 5;
+
+/*Task 5*/
+select dayname(created_at) as day_of_week, count(*) as total_number_of_users_registered 
+from users
+group by day_of_week
+order by total_number_of_users_registered DESC;
+
+
+
+
+
+
+
+
+/*Part B: Investor Metrics*/
+/*1. User Engagement: */
+
+select (select count(*) from photos)/(select count(*) from users) as Avg_posts;
+
+
+
+
+
+
+/*2.Bots & Fake Accounts*/
+
+select user_id, username, count(*) as total_likes_per_user
+from users
+inner join likes
+on users.id = likes.user_id
+group by likes.user_id
+having total_likes_per_user = (select count(*) from photos);
